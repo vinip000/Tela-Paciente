@@ -32,7 +32,6 @@ A Rede Feminina é uma ONG que apoia mulheres na prevenção, diagnóstico e tra
 - **shadcn/ui** (Radix UI)
 - **Lucide React**
 
-
 ## 👩‍💻 Equipe
 
 | Nome | E-mail |
