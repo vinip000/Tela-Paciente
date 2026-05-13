@@ -1,42 +1,24 @@
-# Dependencies
-node_modules/
-
-# Build
-dist/
-dist-ssr/
-*.local
-
 # Logs
-logs/
+logs
 *.log
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Environment
-.env
-.env.*
-!.env.example
+node_modules
+dist
+dist-ssr
+*.local
 
-# Editor / OS
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-
-# IDE
-.idea/
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.vs/
-
-# TypeScript
-*.tsbuildinfo
-
-# Vite
-.vite/
-
-# Testing / coverage
-coverage/
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
