@@ -9,7 +9,7 @@ const WHATSAPP_MESSAGE = "Quero%20fazer%20uma%20doa%C3%A7%C3%A3o";
 
 interface FinancialDonationProps {
   onBack: () => void;
-  onConfirm: () => void;
+  onConfirm: (form: FinancialDonationForm) => void;
 }
 
 export function FinancialDonation({ onBack, onConfirm }: FinancialDonationProps) {
@@ -42,7 +42,7 @@ export function FinancialDonation({ onBack, onConfirm }: FinancialDonationProps)
   }
 
   function handleSubmit() {
-    if (validate()) onConfirm();
+    if (validate()) onConfirm(form);
   }
 
   const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;

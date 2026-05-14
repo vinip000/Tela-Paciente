@@ -13,7 +13,7 @@ const ITEM_TYPES: { value: ItemType; label: string }[] = [
 
 interface MaterialDonationProps {
   onBack: () => void;
-  onConfirm: () => void;
+  onConfirm: (form: MaterialDonationForm) => void;
 }
 
 export function MaterialDonation({ onBack, onConfirm }: MaterialDonationProps) {
@@ -51,7 +51,7 @@ export function MaterialDonation({ onBack, onConfirm }: MaterialDonationProps) {
   }
 
   function handleSubmit() {
-    if (validate()) onConfirm();
+    if (validate()) onConfirm(form);
   }
 
   return (
