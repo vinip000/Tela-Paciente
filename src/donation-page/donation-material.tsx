@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import type { MaterialDonationForm, DeliveryMethod, ItemType } from "./donation-types";
+import { formatPhoneBR } from "./phone-format";
 
 const ITEM_TYPES: { value: ItemType; label: string }[] = [
   { value: "roupas", label: "Roupas" },
@@ -13,7 +14,7 @@ const ITEM_TYPES: { value: ItemType; label: string }[] = [
 
 interface MaterialDonationProps {
   onBack: () => void;
-  onConfirm: () => void;
+  onConfirm: (form: MaterialDonationForm) => void;
 }
 
 export function MaterialDonation({ onBack, onConfirm }: MaterialDonationProps) {
@@ -29,7 +30,8 @@ export function MaterialDonation({ onBack, onConfirm }: MaterialDonationProps) {
   const [errors, setErrors] = useState<Partial<Record<keyof MaterialDonationForm, string>>>({});
 
   function handleChange(field: keyof MaterialDonationForm, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const next = field === "telefone" ? formatPhoneBR(value) : value;
+    setForm((prev) => ({ ...prev, [field]: next }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   }
 
@@ -51,7 +53,7 @@ export function MaterialDonation({ onBack, onConfirm }: MaterialDonationProps) {
   }
 
   function handleSubmit() {
-    if (validate()) onConfirm();
+    if (validate()) onConfirm(form);
   }
 
   return (
@@ -94,9 +96,11 @@ export function MaterialDonation({ onBack, onConfirm }: MaterialDonationProps) {
           <label className="mb-1 block text-xs font-medium text-gray-600">Telefone *</label>
           <input
             type="tel"
+            inputMode="tel"
             value={form.telefone}
             onChange={(e) => handleChange("telefone", e.target.value)}
             placeholder="(47) 99999-9999"
+            maxLength={15}
             className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-pink-400 focus:ring-2 focus:ring-pink-100 ${
               errors.telefone ? "border-red-400 bg-red-50" : "border-gray-200 bg-white"
             }`}

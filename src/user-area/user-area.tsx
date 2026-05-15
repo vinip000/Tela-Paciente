@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Heart, LogOut, User, Bell, Phone, Mail, MapPin } from "lucide-react";
 import { DonationModal } from "../donation-page/donation-modal";
 import { DonorDashboard } from "./donor/donor-dashboard";
+import { PatientDashboard } from "./patient/patient-dashboard";
+import { DEMO_DONOR_ID, DEMO_DONOR_NAME, DEMO_PATIENT_NAME } from "../domain/storage";
+import { loadDonations, saveDonations } from "../domain/donor-data";
+import type { Donation } from "../domain/types";
 
 type UserAreaRole = "paciente" | "doador";
 
@@ -10,24 +14,40 @@ interface UserAreaProps {
   onLogout: () => void;
 }
 
-const roleContent: Record<UserAreaRole, { title: string; subtitle: string }> = {
+const roleContent: Record<
+  UserAreaRole,
+  { title: string; subtitle: string; userName: string }
+> = {
   paciente: {
-    title: "Área da Paciente",
-    subtitle: "Acompanhe solicitações e informações do seu atendimento.",
+    title: "Minha Área",
+    subtitle:
+      "Bem-vinda de volta! Aqui você pode acompanhar seus atendimentos e atualizar seus dados.",
+    userName: DEMO_PATIENT_NAME,
   },
   doador: {
-    title: "Área do Doador",
-    subtitle: "Acompanhe campanhas e histórico de doações.",
+    title: "Histórico de Doações",
+    subtitle: "Acompanhe suas contribuições e faça novas doações",
+    userName: DEMO_DONOR_NAME,
   },
-};
-
-const mockUser = {
-  name: "João Doador",
 };
 
 export function UserArea({ role, onLogout }: UserAreaProps) {
   const content = roleContent[role];
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+  const [donations, setDonations] = useState<Donation[]>(() => loadDonations());
+
+  useEffect(() => {
+    saveDonations(donations);
+  }, [donations]);
+
+  const donorDonations = useMemo(
+    () => donations.filter((d) => d.donorId === DEMO_DONOR_ID),
+    [donations],
+  );
+
+  function handleCreateDonation(donation: Donation) {
+    setDonations((current) => [donation, ...current]);
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
@@ -58,7 +78,7 @@ export function UserArea({ role, onLogout }: UserAreaProps) {
 
           <div className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
             <User size={17} />
-            <span>{mockUser.name}</span>
+            <span>{content.userName}</span>
           </div>
 
           <button
@@ -71,36 +91,30 @@ export function UserArea({ role, onLogout }: UserAreaProps) {
         </div>
       </nav>
 
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-8">
-        <div className="rounded-3xl border border-pink-100 bg-white p-8 shadow-sm shadow-pink-100/40">
-
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-pink-100 p-2">
-                <Heart className="h-5 w-5 text-pink-600" />
-              </div>
-              <h1 className="text-2xl font-semibold text-[var(--primary)]">
-                {content.title}
-              </h1>
-            </div>
-
-            {role === "doador" && (
-              <button
-                onClick={() => setIsDonationModalOpen(true)}
-                className="flex items-center gap-2 rounded-xl bg-pink-500 px-4 py-2 text-sm font-semibold text-white hover:bg-pink-600"
-              >
-                <Heart size={14} className="fill-white" />
-                Realizar Doação
-              </button>
-            )}
-          </div>
-
-          <p className="text-sm text-[var(--muted-foreground)] mb-6">
+      <main
+        className={`flex-1 w-full mx-auto px-4 py-8 ${
+          role === "paciente" || role === "doador"
+            ? "max-w-[1240px]"
+            : "max-w-4xl"
+        }`}
+      >
+        <div className="mb-10">
+          <h1 className="mb-3 text-3xl font-semibold text-[var(--primary)]">
+            {content.title}
+          </h1>
+          <p className="text-base text-[var(--muted-foreground)]">
             {content.subtitle}
           </p>
-
-          {role === "doador" && <DonorDashboard />}
         </div>
+
+        {role === "paciente" ? (
+          <PatientDashboard />
+        ) : (
+          <DonorDashboard
+            donations={donorDonations}
+            onDonate={() => setIsDonationModalOpen(true)}
+          />
+        )}
       </main>
 
             <footer className="mt-auto border-t border-[var(--border)] bg-[var(--background)] pb-4 pt-10">
@@ -173,6 +187,7 @@ export function UserArea({ role, onLogout }: UserAreaProps) {
       <DonationModal
         isOpen={isDonationModalOpen}
         onClose={() => setIsDonationModalOpen(false)}
+        onCreate={handleCreateDonation}
       />
     </div>
   );

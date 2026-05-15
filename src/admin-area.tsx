@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { AdminUserModal } from "./admin/admin-user-modal";
+import { AdminReports } from "./admin/admin-reports";
 import type { ManagedUser, ManagedUserRole } from "./admin/types";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -471,16 +472,7 @@ export function AdminArea({ onLogout }: AdminAreaProps) {
           </Card>
         )}
 
-        {activeTab === "reports" && (
-          <Card className="border-pink-100">
-            <CardHeader>
-              <CardTitle className="text-pink-600">Relatórios</CardTitle>
-              <CardDescription>
-                Acesse indicadores administrativos detalhados.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
+        {activeTab === "reports" && <AdminReports />}
       </main>
 
       <footer className="mt-auto border-t border-[var(--border)] bg-[var(--background)] pb-4 pt-10">

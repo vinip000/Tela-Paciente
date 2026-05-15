@@ -1,4 +1,4 @@
-import { useEffect, useState, type ElementType } from "react";
+import { useEffect, useMemo, useState, type ElementType } from "react";
 import {
   Search, Filter, Eye, Send, CheckCircle,
   Clock, Heart, Phone, Mail, MapPin,
@@ -26,56 +26,23 @@ import { VolunteerAgenda } from "./volunteer-hours/volunteer-agenda";
 import { VolunteerHoursList } from "./volunteer-hours/volunteer-hours-list";
 import { VolunteerHoursModal } from "./volunteer-hours/volunteer-hours-modal";
 import type { VolunteerHourEntry } from "./volunteer-hours/types";
-
-type Status = "pendente" | "encaminhado" | "concluído";
-type Priority = "alta" | "média" | "baixa";
-
-interface Patient {
-  id: number;
-  name: string;
-  date: string;
-  status: Status;
-  priority: Priority;
-  symptoms: string;
-}
-
-const initialPatients: Patient[] = [
-  {
-    id: 1,
-    name: "Maria Silva",
-    date: "10/10/2025",
-    status: "pendente",
-    priority: "alta",
-    symptoms: "Nódulo detectado, necessita avaliação urgente",
-  },
-  {
-    id: 2,
-    name: "Ana Souza",
-    date: "08/10/2025",
-    status: "encaminhado",
-    priority: "média",
-    symptoms: "Consulta de acompanhamento pós-cirurgia",
-  },
-  {
-    id: 3,
-    name: "Carla Santos",
-    date: "05/10/2025",
-    status: "concluído",
-    priority: "baixa",
-    symptoms: "Exames de rotina - Resultados normais",
-  },
-  {
-    id: 4,
-    name: "Beatriz Lima",
-    date: "12/10/2025",
-    status: "pendente",
-    priority: "média",
-    symptoms: "Primeira consulta - histórico familiar",
-  },
-];
+import {
+  loadAppointments,
+  saveAppointments,
+} from "./domain/patient-data";
+import { loadPatients, savePatients } from "./domain/patients-data";
+import { DEMO_VOLUNTEER_NAME } from "./domain/storage";
+import type {
+  Appointment,
+  Patient,
+  PatientPriority,
+  PatientWorkflowStatus,
+} from "./domain/types";
+import { PatientHistoryModal } from "./user-area/patient/patient-history-modal";
+import { formatDateBR } from "./user-area/patient/patient-utils";
 
 const statusConfig: Record<
-  Status,
+  PatientWorkflowStatus,
   { className: string; icon: ElementType; label: string }
 > = {
   pendente: {
@@ -88,20 +55,23 @@ const statusConfig: Record<
     icon: Send,
     label: "encaminhado",
   },
-  concluído: {
+  concluido: {
     className: "bg-green-100 text-green-700 border-green-200",
     icon: CheckCircle,
     label: "concluído",
   },
 };
 
-const priorityConfig: Record<Priority, string> = {
-  alta: "bg-red-100 text-red-700 border-red-200",
-  média: "bg-orange-100 text-orange-700 border-orange-200",
-  baixa: "bg-gray-100 text-gray-700 border-gray-200",
+const priorityConfig: Record<PatientPriority, { className: string; label: string }> = {
+  alta: { className: "bg-red-100 text-red-700 border-red-200", label: "alta" },
+  media: {
+    className: "bg-orange-100 text-orange-700 border-orange-200",
+    label: "média",
+  },
+  baixa: { className: "bg-gray-100 text-gray-700 border-gray-200", label: "baixa" },
 };
 
-function StatusBadge({ status }: { status: Status }) {
+function StatusBadge({ status }: { status: PatientWorkflowStatus }) {
   const config = statusConfig[status];
   const Icon = config.icon;
   return (
@@ -112,10 +82,11 @@ function StatusBadge({ status }: { status: Status }) {
   );
 }
 
-function PriorityBadge({ priority }: { priority: Priority }) {
+function PriorityBadge({ priority }: { priority: PatientPriority }) {
+  const config = priorityConfig[priority];
   return (
-    <Badge variant="outline" className={priorityConfig[priority]}>
-      {priority}
+    <Badge variant="outline" className={config.className}>
+      {config.label}
     </Badge>
   );
 }
@@ -127,9 +98,13 @@ interface VolunteerAreaProps {
 export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [patientList, setPatientList] = useState<Patient[]>(initialPatients);
+  const [patientList, setPatientList] = useState<Patient[]>(() => loadPatients());
+  const [appointments, setAppointments] = useState<Appointment[]>(() =>
+    loadAppointments(),
+  );
   const [activeTab, setActiveTab] = useState<VolunteerAreaTab>("patients");
   const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
+  const [historyPatientId, setHistoryPatientId] = useState<string | null>(null);
   const [volunteerHours, setVolunteerHours] = useState<VolunteerHourEntry[]>(() => {
     if (typeof window === "undefined") {
       return initialVolunteerHours;
@@ -147,9 +122,21 @@ export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
     }
   });
 
-  const pendingCount   = patientList.filter((p) => p.status === "pendente").length;
+  useEffect(() => {
+    savePatients(patientList);
+  }, [patientList]);
+
+  useEffect(() => {
+    saveAppointments(appointments);
+  }, [appointments]);
+
+  useEffect(() => {
+    window.localStorage.setItem("volunteer-hours", JSON.stringify(volunteerHours));
+  }, [volunteerHours]);
+
+  const pendingCount = patientList.filter((p) => p.status === "pendente").length;
   const forwardedCount = patientList.filter((p) => p.status === "encaminhado").length;
-  const completedCount = patientList.filter((p) => p.status === "concluído").length;
+  const completedCount = patientList.filter((p) => p.status === "concluido").length;
   const totalHours = volunteerHours.reduce((sum, entry) => sum + entry.hours, 0);
 
   const filtered = patientList.filter((p) => {
@@ -158,21 +145,51 @@ export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
     return matchSearch && matchStatus;
   });
 
-  function handleForward(id: number) {
+  const historyPatient = useMemo(
+    () => patientList.find((p) => p.id === historyPatientId) ?? null,
+    [patientList, historyPatientId],
+  );
+  const historyAppointments = useMemo(
+    () =>
+      historyPatientId
+        ? appointments.filter((a) => a.patientId === historyPatientId)
+        : [],
+    [appointments, historyPatientId],
+  );
+
+  const appointmentsByPatient = useMemo(() => {
+    const map = new Map<string, number>();
+    appointments.forEach((a) => {
+      map.set(a.patientId, (map.get(a.patientId) ?? 0) + 1);
+    });
+    return map;
+  }, [appointments]);
+
+  function handleForward(id: string) {
     setPatientList((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: "encaminhado" as Status } : p))
+      prev.map((p) => (p.id === id ? { ...p, status: "encaminhado" } : p)),
     );
   }
 
-  function handleComplete(id: number) {
+  function handleComplete(id: string) {
     setPatientList((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: "concluído" as Status } : p))
+      prev.map((p) => (p.id === id ? { ...p, status: "concluido" } : p)),
     );
   }
 
-  useEffect(() => {
-    window.localStorage.setItem("volunteer-hours", JSON.stringify(volunteerHours));
-  }, [volunteerHours]);
+  function handleSaveAppointment(appointment: Appointment) {
+    setAppointments((current) => {
+      const exists = current.some((a) => a.id === appointment.id);
+      if (exists) {
+        return current.map((a) => (a.id === appointment.id ? appointment : a));
+      }
+      return [appointment, ...current];
+    });
+  }
+
+  function handleDeleteAppointment(id: string) {
+    setAppointments((current) => current.filter((a) => a.id !== id));
+  }
 
   function handleRegisterHours(entry: VolunteerHourEntry) {
     setVolunteerHours((current) =>
@@ -209,7 +226,7 @@ export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
           </div>
           <div className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
             <User size={17} />
-            <span>Voluntária Maria</span>
+            <span>{DEMO_VOLUNTEER_NAME}</span>
           </div>
           <button
             onClick={onLogout}
@@ -342,7 +359,7 @@ export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
                       <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="encaminhado">Encaminhado</SelectItem>
-                      <SelectItem value="concluído">Concluído</SelectItem>
+                      <SelectItem value="concluido">Concluído</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -361,61 +378,69 @@ export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
                     Nenhuma paciente encontrada.
                   </p>
                 )}
-                {filtered.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className="p-5 rounded-xl border border-pink-100 bg-[var(--secondary)] hover:bg-pink-100/60 transition-colors"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center flex-wrap gap-2 mb-1.5">
-                          <span className="font-medium text-sm">{patient.name}</span>
-                          <StatusBadge status={patient.status} />
-                          <PriorityBadge priority={patient.priority} />
+                {filtered.map((patient) => {
+                  const appointmentCount = appointmentsByPatient.get(patient.id) ?? 0;
+                  return (
+                    <div
+                      key={patient.id}
+                      className="p-5 rounded-xl border border-pink-100 bg-[var(--secondary)] hover:bg-pink-100/60 transition-colors"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                            <span className="font-medium text-sm">{patient.name}</span>
+                            <StatusBadge status={patient.status} />
+                            <PriorityBadge priority={patient.priority} />
+                            <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[11px] font-medium text-pink-700">
+                              {appointmentCount}{" "}
+                              {appointmentCount === 1 ? "atendimento" : "atendimentos"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[var(--muted-foreground)] mb-1">
+                            {patient.symptoms}
+                          </p>
+                          <p className="text-xs text-[var(--muted-foreground)]">
+                            Data de cadastro: {formatDateBR(patient.registrationDate)}
+                          </p>
                         </div>
-                        <p className="text-sm text-[var(--muted-foreground)] mb-1">
-                          {patient.symptoms}
-                        </p>
-                        <p className="text-xs text-[var(--muted-foreground)]">
-                          Data de cadastro: {patient.date}
-                        </p>
-                      </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full border-pink-300 hover:bg-white text-xs"
-                        >
-                          <Eye size={13} />
-                          Visualizar
-                        </Button>
-
-                        {patient.status === "pendente" && (
+                        <div className="flex items-center gap-2 shrink-0">
                           <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleForward(patient.id)}
-                            className="rounded-full bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white shadow-sm shadow-pink-200 text-xs"
+                            onClick={() => setHistoryPatientId(patient.id)}
+                            className="rounded-full border-pink-300 hover:bg-white text-xs"
                           >
-                            <Send size={13} />
-                            Encaminhar
+                            <Eye size={13} />
+                            Histórico
                           </Button>
-                        )}
 
-                        {patient.status === "encaminhado" && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleComplete(patient.id)}
-                            className="rounded-full bg-green-600 hover:bg-green-700 text-white shadow-sm shadow-green-200 text-xs"
-                          >
-                            <CheckCircle size={13} />
-                            Concluir
-                          </Button>
-                        )}
+                          {patient.status === "pendente" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleForward(patient.id)}
+                              className="rounded-full bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white shadow-sm shadow-pink-200 text-xs"
+                            >
+                              <Send size={13} />
+                              Encaminhar
+                            </Button>
+                          )}
+
+                          {patient.status === "encaminhado" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleComplete(patient.id)}
+                              className="rounded-full bg-green-600 hover:bg-green-700 text-white shadow-sm shadow-green-200 text-xs"
+                            >
+                              <CheckCircle size={13} />
+                              Concluir
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>
@@ -492,6 +517,17 @@ export function VolunteerArea({ onLogout }: VolunteerAreaProps) {
         onClose={() => setIsHoursModalOpen(false)}
         onSubmit={handleRegisterHours}
       />
+
+      {historyPatient && (
+        <PatientHistoryModal
+          patient={historyPatient}
+          appointments={historyAppointments}
+          volunteerName={DEMO_VOLUNTEER_NAME}
+          onClose={() => setHistoryPatientId(null)}
+          onSave={handleSaveAppointment}
+          onDelete={handleDeleteAppointment}
+        />
+      )}
     </div>
   );
 }

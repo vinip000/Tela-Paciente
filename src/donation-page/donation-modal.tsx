@@ -1,17 +1,35 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { DonationType, DonationStep } from "./donation-types";
+import type {
+  DonationType,
+  DonationStep,
+  FinancialDonationForm,
+  MaterialDonationForm,
+} from "./donation-types";
 import { DonationChoice } from "./donation-choice";
 import { FinancialDonation } from "./donation-financial";
 import { MaterialDonation } from "./donation-material";
 import { DonationConfirmation } from "./donation-confirmation";
+import { buildDonationId } from "../domain/donor-data";
+import { DEMO_DONOR_ID, DEMO_DONOR_NAME } from "../domain/storage";
+import type { Donation } from "../domain/types";
 
 interface DonationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreate?: (donation: Donation) => void;
 }
 
-export function DonationModal({ isOpen, onClose }: DonationModalProps) {
+function parseAmount(input: string): number | undefined {
+  if (!input) {
+    return undefined;
+  }
+  const normalized = input.replace(/[^\d,.-]/g, "").replace(",", ".");
+  const value = Number.parseFloat(normalized);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+export function DonationModal({ isOpen, onClose, onCreate }: DonationModalProps) {
   const [step, setStep] = useState<DonationStep>("escolha");
   const [donationType, setDonationType] = useState<DonationType>(null);
 
@@ -26,7 +44,37 @@ export function DonationModal({ isOpen, onClose }: DonationModalProps) {
     else if (donationType === "material") setStep("material");
   }
 
-  function handleConfirm() {
+  function handleFinancialConfirm(form: FinancialDonationForm) {
+    const donation: Donation = {
+      id: buildDonationId(),
+      donorId: DEMO_DONOR_ID,
+      donorName: form.nome.trim() || DEMO_DONOR_NAME,
+      donorPhone: form.telefone.trim() || undefined,
+      kind: "financeira",
+      date: new Date().toISOString(),
+      status: "pendente",
+      amount: parseAmount(form.valorEstimado),
+    };
+    onCreate?.(donation);
+    setStep("confirmacao");
+  }
+
+  function handleMaterialConfirm(form: MaterialDonationForm) {
+    const donation: Donation = {
+      id: buildDonationId(),
+      donorId: DEMO_DONOR_ID,
+      donorName: form.nome.trim() || DEMO_DONOR_NAME,
+      donorPhone: form.telefone.trim() || undefined,
+      kind: "material",
+      date: new Date().toISOString(),
+      status: "pendente",
+      itemType: form.tipoItem || undefined,
+      quantity: form.quantidade.trim() || undefined,
+      description: form.descricao.trim() || undefined,
+      deliveryMethod: form.formaEntrega || undefined,
+      notes: form.observacoes.trim() || undefined,
+    };
+    onCreate?.(donation);
     setStep("confirmacao");
   }
 
@@ -85,11 +133,11 @@ export function DonationModal({ isOpen, onClose }: DonationModalProps) {
         )}
 
         {step === "financeira" && (
-          <FinancialDonation onBack={handleBack} onConfirm={handleConfirm} />
+          <FinancialDonation onBack={handleBack} onConfirm={handleFinancialConfirm} />
         )}
 
         {step === "material" && (
-          <MaterialDonation onBack={handleBack} onConfirm={handleConfirm} />
+          <MaterialDonation onBack={handleBack} onConfirm={handleMaterialConfirm} />
         )}
 
         {step === "confirmacao" && <DonationConfirmation onClose={handleClose} />}
