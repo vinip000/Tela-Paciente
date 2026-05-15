@@ -1,19 +1,16 @@
 import type { Donation } from "../../domain/types";
-import { DonorStats } from "./donor-stats";
-import { DonorCampaigns } from "./donor-campaigns";
 import { DonorHistory } from "./donor-history";
+import { DonorStats } from "./donor-stats";
 
 interface DonorDashboardProps {
   donations: Donation[];
+  onDonate: () => void;
 }
 
-export function DonorDashboard({ donations }: DonorDashboardProps) {
+export function DonorDashboard({ donations, onDonate }: DonorDashboardProps) {
   return (
-    <div className="mt-6 space-y-6">
-      <DonorStats donations={donations} />
-
-      <DonorCampaigns />
-
+    <div className="space-y-10">
+      <DonorStats donations={donations} onDonate={onDonate} />
       <DonorHistory donations={donations} />
     </div>
   );
