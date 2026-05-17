@@ -1,4 +1,4 @@
-﻿# 🌸 Cuidado Floral
+# 🌸 Cuidado Floral
 
 Sistema web de cadastro e gestão para a **Rede Feminina de Combate ao Câncer de Mama de Itapema**, desenvolvido como projeto da disciplina de Engenharia de Software 2 — UNIVALI.
 
