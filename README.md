@@ -1,35 +1,49 @@
-# Tela-Paciente
+# 🌸 Cuidado Floral
 
-Um pequeno projeto frontend com Vite e TypeScript para uma interface de paciente.
+Sistema web de cadastro e gestão para a **Rede Feminina de Combate ao Câncer de Mama de Itapema**, desenvolvido como projeto da disciplina de Engenharia de Software 2 — UNIVALI.
 
-## Como rodar
+## Sobre o projeto
 
-1. Clone o repositório:
-   ```bash
-   git clone <URL-do-seu-repositório>
-   ```
-2. Acesse a pasta do projeto:
-   ```bash
-   cd paciente
-   ```
-3. Instale as dependências:
-   ```bash
-   npm install
-   ```
-4. Rode em modo de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
+A Rede Feminina é uma ONG que apoia mulheres na prevenção, diagnóstico e tratamento do câncer de mama. Este sistema tem como objetivo centralizar e modernizar o gerenciamento de pacientes, voluntários e doadores, substituindo processos manuais e comunicações via WhatsApp por uma plataforma segura e eficiente.
 
-Abra o endereço exibido no terminal (geralmente `http://localhost:5173`).
+## Perfis de usuário
 
-## Scripts disponíveis
+- **Paciente** — realiza cadastro, acompanha encaminhamentos e recebe notificações
+- **Voluntária** — gerencia pacientes, realiza encaminhamentos e registra horas de voluntariado
+- **Doador** — realiza doações financeiras ou materiais e consulta histórico de contribuições
+- **Administrador** — acesso completo ao sistema, gerencia usuários, campanhas e relatórios
 
-- `npm run dev` - inicia o servidor de desenvolvimento.
-- `npm run build` - cria a versão de produção.
-- `npm run preview` - pré-visualiza o build de produção localmente.
+## Principais funcionalidades
 
-## Requisitos
+- Cadastro e gerenciamento de pacientes com histórico clínico
+- Encaminhamento de pacientes para setores responsáveis
+- Registro de horas de voluntariado
+- Gestão de doações financeiras e materiais
+- Geração e exportação de relatórios (PDF e Excel)
+- Gerenciamento de campanhas de arrecadação
+- Autenticação segura com recuperação de senha
+- Notificações de agendamentos para pacientes
 
-- Node.js instalado.
-- NPM disponível.
+## Tecnologias
+
+- **React** + **TypeScript**
+- **Vite**
+- **Tailwind CSS v4**
+- **shadcn/ui** (Radix UI)
+- **Lucide React**
+
+
+## 👩‍💻 Equipe
+
+| Nome | E-mail |
+|------|--------|
+| Bruno de Almeida Aseff | bruno_aseff@edu.univali.br
+| João Pedro Ferreira Dias | joao.8539057@edu.univali.br |
+| Maria Eduarda Lima da Silva | maria.limasilva@edu.univali.br |
+| Nicoly Maria Tejero Colutti | nicoly.colutti@edu.univali.br |
+| Vinicius Pereira de Araújo Silva | vinicius.pereira@edu.univali.br |
+
+---
+
+Disciplina de Engenharia de Software 2 — Escola Politécnica UNIVALI  
+Profa. Claudia Neli de Souza Zambon
